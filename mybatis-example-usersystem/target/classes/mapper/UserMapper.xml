@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 命名空间与对应映射接口的全类名一致 -->
+<mapper namespace="com.yc.mybatis.mapper.UserMapper">
+
+	<!-- 二级缓存默认是关闭
+		启用二级缓存:
+		1.启用二级缓存
+		2.把要缓存的数据commit到二级缓存
+		3.要序列化要存入二级缓存的实体类
+	 -->
+	 <!-- <cache/> 启动二级缓存-->
+	 
+	 <!-- 引入第三方的二级缓存 -->
+	 <cache type="org.mybatis.caches.ehcache.LoggingEhcache"/>
+	
+	<!-- 定义sql变量 -->
+	<sql id="selectProfile">
+		select * from profile
+	</sql>
+	
+	<select id="findUser" parameterType="User" resultType="User">
+		<include refid="selectProfile"/> where id=#{id} and name=#{name}
+	</select>
+	
+	<resultMap type="PaginationBean" id="PaginationBeanMap">
+		<collection property="rows" column="{pageSize=pageSize,currPage=currPage}" select="getUsers"/>
+	</resultMap>
+	
+	<!-- #是采用占位符
+		 $是直接取到值 -->
+		 
+	<select id="getUsersByPagination" parameterType="PaginationBean" resultMap="PaginationBeanMap">
+		select count(1) total,ceil(count(1)/${pageSize}) totalPage,${pageSize} pageSize,${currPage} currPage  from profile
+	</select>
+	
+	<select id="getUsers" resultType="User">
+		select * from
+		(select m.*,rownum rn from
+		(select * from PROFILE order by 1 desc) m where   ${currPage}*${pageSize} >=rownum ) where rn >(${currPage}-1)*${pageSize}
+	</select>
+	
+	<update id="updateUser" parameterType="User" flushCache="false">
+		update profile set name=#{name},birthday=#{birthday},gender=#{gender},career=#{career},address=#{address},mobile=#{mobile}
+		<if test="picPath !=null">,picPath=#{picPath}</if> 
+		where id=#{id}
+	</update>
+	
+	<select id="getUserById" parameterType="int" resultType="User" >
+		select * from profile where id=#{id} 
+	</select>
+</mapper>
